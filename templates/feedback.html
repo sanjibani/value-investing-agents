@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daily Insights Feedback</title>
+    <style>
+        body { font-family: Arial; max-width: 900px; margin: 50px auto; }
+        .insight { border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .stars { font-size: 24px; cursor: pointer; }
+        .star { color: #ddd; }
+        .star.selected { color: #ffd700; }
+        textarea { width: 100%; min-height: 60px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Today's Investment Ideas - Rate Them!</h1>
+    
+    {% for insight in insights %}
+    <div class="insight" id="insight-{{ insight.id }}">
+        <h2>{{ insight.headline }}</h2>
+        <p><strong>Type:</strong> {{ insight.signal_type }} | <strong>Company:</strong> {{ insight.company }}</p>
+        
+        <h3>Evidence:</h3>
+        <ul>
+        {% for fact in insight.evidence %}
+            <li>{{ fact }}</li>
+        {% endfor %}
+        </ul>
+        
+        <h3>Analysis:</h3>
+        <p>{{ insight.analysis }}</p>
+        
+        <h3>Your Feedback:</h3>
+        <div class="stars" id="stars-{{ insight.id }}">
+            <span class="star" data-rating="1">★</span>
+            <span class="star" data-rating="2">★</span>
+            <span class="star" data-rating="3">★</span>
+            <span class="star" data-rating="4">★</span>
+            <span class="star" data-rating="5">★</span>
+        </div>
+        
+        <textarea id="comment-{{ insight.id }}" placeholder="Optional: Why was this valuable/not valuable?"></textarea>
+        
+        <button onclick="submitFeedback({{ insight.id }})">Submit Feedback</button>
+    </div>
+    {% endfor %}
+    
+    <script>
+        // Star rating interaction
+        document.querySelectorAll('.stars').forEach(container => {
+            container.querySelectorAll('.star').forEach(star => {
+                star.addEventListener('click', function() {
+                    const rating = this.dataset.rating;
+                    const stars = this.parentElement.querySelectorAll('.star');
+                    stars.forEach((s, idx) => {
+                        s.classList.toggle('selected', idx < rating);
+                    });
+                });
+            });
+        });
+        
+        function submitFeedback(insightId) {
+            const stars = document.querySelectorAll(`#stars-${insightId} .star.selected`);
+            const rating = stars.length;
+            const comment = document.getElementById(`comment-${insightId}`).value;
+            
+            if (rating === 0) {
+                alert('Please select a star rating');
+                return;
+            }
+            
+            fetch('/submit_feedback', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    insight_id: insightId,
+                    star_rating: rating,
+                    comment: comment
+                })
+            }).then(response => {
+                if (response.ok) {
+                    document.getElementById(`insight-${insightId}`).style.opacity = '0.5';
+                    alert('Feedback submitted!');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

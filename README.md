@@ -12,13 +12,53 @@ A self-hosted multi-agent AI system that discovers and researches special situat
 
 ## Architecture
 
-![Architecture](https://via.placeholder.com/800x400?text=Agent+Architecture+Diagram)
+The system uses **LangGraph** to orchestrate a multi-agent research pipeline with conditional routing and state management.
 
-1.  **Data Collector**: Scrapes NSE and Screener.in.
-2.  **Discovery Agent** (Qwen-Turbo): Filters thousands of signals.
-3.  **Deep Research Agent** (DeepSeek V3): Performs comprehensive analysis.
-4.  **Synthesis Agent**: Generates final investment memos.
-5.  **Quality Filter**: Reward model predicts user interest.
+```mermaid
+graph TD
+    Start([Daily Scheduler]) --> Scraper[Data Collector<br/>NSE/BSE Filings]
+    Scraper --> Signals[(Raw Signals<br/>Insider Trades, Announcements)]
+    
+    Signals --> Discovery[Discovery Agent<br/>Qwen-2.5-72B<br/>Fast Filter]
+    
+    Discovery --> Gate{Is Interesting?}
+    Gate -->|No| End1([Discard])
+    Gate -->|Yes| DeepResearch[Deep Research Agent<br/>DeepSeek V3<br/>4-Level Analysis]
+    
+    DeepResearch --> Level1[Level 1: Company Basics]
+    Level1 --> Level2[Level 2: Historical Patterns]
+    Level2 --> Level3[Level 3: Fundamentals]
+    Level3 --> Level4[Level 4: Synthesis]
+    
+    Level4 --> Context[Context Agent<br/>DeepSeek V3<br/>Industry & Peers]
+    
+    Context --> Validation[Validation Agent<br/>Qwen-2.5-72B<br/>Fact Checking]
+    
+    Validation --> Synthesis[Synthesis Agent<br/>DeepSeek V3<br/>Final Report]
+    
+    Synthesis --> QualityGate{Score >= 7.0?}
+    QualityGate -->|No| End2([Discard])
+    QualityGate -->|Yes| Store[(PostgreSQL<br/>+ pgvector)]
+    
+    Store --> Digest[Daily Digest<br/>HTML Report]
+    
+    style Discovery fill:#e1f5ff
+    style DeepResearch fill:#fff4e1
+    style Context fill:#fff4e1
+    style Validation fill:#e1f5ff
+    style Synthesis fill:#fff4e1
+    style Store fill:#e8f5e9
+```
+
+### Key Components
+
+1.  **Data Collector**: Scrapes NSE and Screener.in for signals
+2.  **Discovery Agent** (Qwen-2.5-72B): Fast, cost-effective filtering
+3.  **Deep Research Agent** (DeepSeek V3): Multi-level comprehensive analysis
+4.  **Context Agent** (DeepSeek V3): Industry trends and peer comparison
+5.  **Validation Agent** (Qwen-2.5-72B): Fact-checking and consistency validation
+6.  **Synthesis Agent** (DeepSeek V3): Generates structured investment memos
+7.  **Quality Filter**: Only insights scoring ≥7.0 are saved
 
 ## Prerequisites
 
